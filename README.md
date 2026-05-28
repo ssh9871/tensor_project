@@ -1,8 +1,9 @@
 음식 칼로리 추정 어플리케이션
 --
 
-**Contributors**
 ---
+**Contributors**
+
 - Happy623623
 - 0-kyun
 - gill1026
