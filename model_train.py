@@ -17,6 +17,9 @@ BASE_DIR = os.getcwd()
 # UECFOOD100 폴더
 UEC_ROOT = os.path.join(BASE_DIR, "UECFOOD100")
 
+# 한국 음식 이미지 폴더
+KOREAN_ROOT = os.path.join(BASE_DIR, "korean_food_images")
+
 # 생성될 YOLO 데이터셋 폴더
 YOLO_ROOT = os.path.join(BASE_DIR, "food_dataset")
 
@@ -46,6 +49,28 @@ class_mapping = {
     56: 6,
     68: 7
 }
+
+# korean_food_images의 하위 폴더명을 YOLO 클래스에 추가
+korean_class_names = []
+
+if os.path.exists(KOREAN_ROOT):
+    korean_class_names = sorted([
+        folder_name
+        for folder_name in os.listdir(KOREAN_ROOT)
+        if os.path.isdir(os.path.join(KOREAN_ROOT, folder_name))
+    ])
+else:
+    print(f"korean_food_images 폴더 없음: {KOREAN_ROOT}")
+
+korean_class_mapping = {
+    class_name: len(selected_classes) + index
+    for index, class_name in enumerate(korean_class_names)
+}
+
+all_class_names = (
+    list(selected_classes.values())
+    + korean_class_names
+)
 
 # ==============================
 # 5. 폴더 생성
@@ -85,6 +110,75 @@ def convert_bbox(size, box):
         bbox_width,
         bbox_height
     )
+
+
+def parse_crop_area_line(line):
+
+    line = line.strip()
+
+    if not line or "=" not in line:
+        return None
+
+    image_stem, crop_value = line.split("=", 1)
+    crop_tokens = crop_value.strip().split()
+
+    if not image_stem or not crop_tokens:
+        return None
+
+    coords = crop_tokens[0].split(",")
+
+    if len(coords) != 4:
+        return None
+
+    try:
+        xmin, ymin, xmax, ymax = [
+            int(coord)
+            for coord in coords
+        ]
+    except ValueError:
+        return None
+
+    return image_stem, (xmin, ymin, xmax, ymax)
+
+
+def build_image_lookup(folder_path):
+
+    image_lookup = {}
+    image_extensions = {
+        ".jpg",
+        ".jpeg",
+        ".png"
+    }
+
+    for file_name in os.listdir(folder_path):
+
+        file_path = os.path.join(folder_path, file_name)
+
+        if not os.path.isfile(file_path):
+            continue
+
+        stem, ext = os.path.splitext(file_name)
+
+        if ext.lower() in image_extensions:
+            image_lookup[stem] = file_name
+
+    return image_lookup
+
+
+def clamp_bbox(box, size):
+
+    w, h = size
+    xmin, ymin, xmax, ymax = box
+
+    xmin = max(0, min(xmin, w))
+    xmax = max(0, min(xmax, w))
+    ymin = max(0, min(ymin, h))
+    ymax = max(0, min(ymax, h))
+
+    if xmax <= xmin or ymax <= ymin:
+        return None
+
+    return xmin, ymin, xmax, ymax
 
 # ==============================
 # 7. 데이터 변환
@@ -188,10 +282,117 @@ for original_class_id, class_name in selected_classes.items():
                 YOLO_ROOT,
                 split_name,
                 "labels",
-                new_name.replace(".jpg", ".txt")
+                os.path.splitext(new_name)[0] + ".txt"
             )
 
             # label txt 저장
+            with open(label_path, "w") as label_file:
+
+                label_file.write(
+                    f"{yolo_class_id} "
+                    f"{bbox[0]} "
+                    f"{bbox[1]} "
+                    f"{bbox[2]} "
+                    f"{bbox[3]}"
+                )
+
+for class_name in korean_class_names:
+
+    folder_path = os.path.join(
+        KOREAN_ROOT,
+        class_name
+    )
+
+    crop_area_path = os.path.join(
+        folder_path,
+        "crop_area.properties"
+    )
+
+    if not os.path.exists(crop_area_path):
+
+        print(f"crop_area.properties 없음: {crop_area_path}")
+        continue
+
+    with open(crop_area_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    image_lookup = build_image_lookup(folder_path)
+    data_items = []
+
+    for line in lines:
+
+        parsed = parse_crop_area_line(line)
+
+        if parsed is None:
+            continue
+
+        image_stem, box = parsed
+        image_name = image_lookup.get(image_stem)
+
+        if image_name is None:
+            print(f"이미지 없음: {os.path.join(folder_path, image_stem)}")
+            continue
+
+        data_items.append((image_name, box))
+
+    random.shuffle(data_items)
+
+    split_index = int(len(data_items) * 0.8)
+
+    train_items = data_items[:split_index]
+    valid_items = data_items[split_index:]
+
+    for split_name, split_items in [
+        ("train", train_items),
+        ("valid", valid_items)
+    ]:
+
+        for image_name, box in split_items:
+
+            image_path = os.path.join(
+                folder_path,
+                image_name
+            )
+
+            img = Image.open(image_path)
+
+            w, h = img.size
+
+            clamped_box = clamp_bbox(
+                box,
+                (w, h)
+            )
+
+            if clamped_box is None:
+                continue
+
+            bbox = convert_bbox(
+                (w, h),
+                clamped_box
+            )
+
+            yolo_class_id = korean_class_mapping[
+                class_name
+            ]
+
+            new_name = f"{class_name}_{image_name}"
+
+            dst_image_path = os.path.join(
+                YOLO_ROOT,
+                split_name,
+                "images",
+                new_name
+            )
+
+            shutil.copy(image_path, dst_image_path)
+
+            label_path = os.path.join(
+                YOLO_ROOT,
+                split_name,
+                "labels",
+                os.path.splitext(new_name)[0] + ".txt"
+            )
+
             with open(label_path, "w") as label_file:
 
                 label_file.write(
@@ -212,22 +413,18 @@ yaml_text = f"""
 train: {os.path.join(YOLO_ROOT, 'train', 'images')}
 val: {os.path.join(YOLO_ROOT, 'valid', 'images')}
 
-nc: 8
+nc: {len(all_class_names)}
 
 names:
-  0: 밥
-  1: 비빔밥
-  2: 햄버거
-  3: 피자
-  4: 스파게티
-  5: 소시지
-  6: 돈까스
-  7: 달걀 프라이
+{os.linesep.join([
+    f"  {index}: {class_name}"
+    for index, class_name in enumerate(all_class_names)
+])}
 """
 
 yaml_path = os.path.join(YOLO_ROOT, "data.yaml")
 
-with open(yaml_path, "w") as f:
+with open(yaml_path, "w", encoding="utf-8") as f:
     f.write(yaml_text)
 
 print("data.yaml 생성 완료!")
