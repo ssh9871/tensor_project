@@ -25,12 +25,14 @@ YOLO_ROOT = os.path.join(BASE_DIR, "food_dataset")
 # ==============================
 
 selected_classes = {
-    1: "rice",
-    11: "bibimbap",
-    17: "hamburger",
-    18: "pizza",
-    27: "spaghetti",
-    56: "pork_cutlet"
+    1: "밥",
+    11: "비빔밥",
+    17: "햄버거",
+    18: "피자",
+    27: "스파게티",
+    38: "소시지",
+    56: "돈까스",
+    68: "달걀 프라이"
 }
 
 # YOLO용 새로운 클래스 번호 매핑
@@ -40,7 +42,9 @@ class_mapping = {
     17: 2,
     18: 3,
     27: 4,
-    56: 5
+    38: 5,
+    56: 6,
+    68: 7
 }
 
 # ==============================
@@ -208,15 +212,17 @@ yaml_text = f"""
 train: {os.path.join(YOLO_ROOT, 'train', 'images')}
 val: {os.path.join(YOLO_ROOT, 'valid', 'images')}
 
-nc: 6
+nc: 8
 
 names:
-  0: rice
-  1: bibimbap
-  2: hamburger
-  3: pizza
-  4: spaghetti
-  5: pork_cutlet
+  0: 밥
+  1: 비빔밥
+  2: 햄버거
+  3: 피자
+  4: 스파게티
+  5: 소시지
+  6: 돈까스
+  7: 달걀 프라이
 """
 
 yaml_path = os.path.join(YOLO_ROOT, "data.yaml")
