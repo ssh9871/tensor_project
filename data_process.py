@@ -23,6 +23,9 @@ KOREAN_ROOT = os.path.join(BASE_DIR, "korean_food_images")
 # 생성될 YOLO 데이터셋 폴더
 YOLO_ROOT = os.path.join(BASE_DIR, "food_dataset")
 
+# 직접 bbox를 지정한 음식 이미지 폴더
+SELF_BBOX_ROOT = os.path.join(BASE_DIR, "self_bbox")
+
 # ==============================
 # 3. 사용할 클래스 정의
 # ==============================
@@ -67,9 +70,20 @@ korean_class_mapping = {
     for index, class_name in enumerate(korean_class_names)
 }
 
+self_bbox_classes = {
+    "blackbean_noodle": "짜장",
+    "stired_pork": "제육볶음"
+}
+
+self_bbox_class_mapping = {
+    folder_name: len(selected_classes) + len(korean_class_names) + index
+    for index, folder_name in enumerate(self_bbox_classes)
+}
+
 all_class_names = (
     list(selected_classes.values())
     + korean_class_names
+    + list(self_bbox_classes.values())
 )
 
 # ==============================
@@ -78,15 +92,21 @@ all_class_names = (
 
 for split in ["train", "valid"]:
 
-    os.makedirs(
-        os.path.join(YOLO_ROOT, split, "images"),
-        exist_ok=True
-    )
+    for folder_name in ["images", "labels"]:
 
-    os.makedirs(
-        os.path.join(YOLO_ROOT, split, "labels"),
-        exist_ok=True
-    )
+        folder_path = os.path.join(
+            YOLO_ROOT,
+            split,
+            folder_name
+        )
+
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+
+        os.makedirs(
+            folder_path,
+            exist_ok=True
+        )
 
 # ==============================
 # 5. bbox → YOLO format 변환 함수
@@ -402,5 +422,112 @@ for class_name in korean_class_names:
                     f"{bbox[2]} "
                     f"{bbox[3]}"
                 )
+
+for folder_name, class_name in self_bbox_classes.items():
+
+    folder_path = os.path.join(
+        SELF_BBOX_ROOT,
+        folder_name
+    )
+
+    images_path = os.path.join(
+        folder_path,
+        "images"
+    )
+
+    labels_path = os.path.join(
+        folder_path,
+        "labels"
+    )
+
+    if not os.path.exists(images_path) or not os.path.exists(labels_path):
+        print(f"self_bbox 폴더 없음: {folder_path}")
+        continue
+
+    data_items = []
+
+    for image_name in os.listdir(images_path):
+
+        image_path = os.path.join(
+            images_path,
+            image_name
+        )
+
+        if not os.path.isfile(image_path):
+            continue
+
+        image_stem, image_ext = os.path.splitext(image_name)
+
+        if image_ext.lower() not in {".jpg", ".jpeg", ".png"}:
+            continue
+
+        label_path = os.path.join(
+            labels_path,
+            image_stem + ".txt"
+        )
+
+        if not os.path.exists(label_path):
+            print(f"라벨 없음: {label_path}")
+            continue
+
+        data_items.append((image_name, label_path))
+
+    random.shuffle(data_items)
+
+    split_index = int(len(data_items) * 0.8)
+
+    train_items = data_items[:split_index]
+    valid_items = data_items[split_index:]
+
+    for split_name, split_items in [
+        ("train", train_items),
+        ("valid", valid_items)
+    ]:
+
+        for image_name, source_label_path in split_items:
+
+            image_path = os.path.join(
+                images_path,
+                image_name
+            )
+
+            new_name = f"{class_name}_{image_name}"
+
+            dst_image_path = os.path.join(
+                YOLO_ROOT,
+                split_name,
+                "images",
+                new_name
+            )
+
+            shutil.copy(image_path, dst_image_path)
+
+            label_path = os.path.join(
+                YOLO_ROOT,
+                split_name,
+                "labels",
+                os.path.splitext(new_name)[0] + ".txt"
+            )
+
+            yolo_class_id = self_bbox_class_mapping[
+                folder_name
+            ]
+
+            with open(source_label_path, "r") as source_label_file:
+                source_labels = source_label_file.readlines()
+
+            with open(label_path, "w") as label_file:
+
+                for source_label in source_labels:
+
+                    parts = source_label.strip().split()
+
+                    if len(parts) != 5:
+                        continue
+
+                    label_file.write(
+                        f"{yolo_class_id} "
+                        f"{' '.join(parts[1:])}\n"
+                    )
 
 print("YOLO 데이터셋 생성 완료!")
