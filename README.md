@@ -47,4 +47,5 @@
 **실행 결과**
 
 <img src="./result_images/pizza.png" width="300">
-<img src="./result_images/image.png" width="300">
+<img src="./result_images/ramyeon.png" width="300">
+<img src="./result_images/pizza.png" width="300">

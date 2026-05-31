@@ -19,6 +19,11 @@ selected_class_names = [
     "달걀 프라이",
 ]
 
+self_bbox_class_names = [
+    "짜장",
+    "제육볶음",
+]
+
 
 def get_all_class_names():
 
@@ -33,7 +38,7 @@ def get_all_class_names():
     else:
         print(f"korean_food_images 폴더 없음: {KOREAN_ROOT}")
 
-    return selected_class_names + korean_class_names
+    return selected_class_names + korean_class_names + self_bbox_class_names
 
 
 def create_data_yaml():
