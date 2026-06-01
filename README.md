@@ -48,4 +48,4 @@
 
 <img src="./result_images/pizza.png" width="300">
 <img src="./result_images/ramyeon.png" width="300">
-<img src="./result_images/pizza.png" width="300">
+<img src="./result_images/blacknoodle.png" width="300">
