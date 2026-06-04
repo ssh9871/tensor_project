@@ -13,18 +13,19 @@ from PIL import Image
 
 # 현재 실행중인 파일 기준 경로
 BASE_DIR = os.getcwd()
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
 # UECFOOD100 폴더
-UEC_ROOT = os.path.join(BASE_DIR, "UECFOOD100")
+UEC_ROOT = os.path.join(DATA_DIR, "UECFOOD100")
 
 # 한국 음식 이미지 폴더
-KOREAN_ROOT = os.path.join(BASE_DIR, "korean_food_images")
+KOREAN_ROOT = os.path.join(DATA_DIR, "korean_food_images")
 
 # 생성될 YOLO 데이터셋 폴더
 YOLO_ROOT = os.path.join(BASE_DIR, "food_dataset")
 
 # 직접 bbox를 지정한 음식 이미지 폴더
-SELF_BBOX_ROOT = os.path.join(BASE_DIR, "self_bbox")
+SELF_BBOX_ROOT = os.path.join(DATA_DIR, "self_bbox")
 
 # ==============================
 # 3. 사용할 클래스 정의

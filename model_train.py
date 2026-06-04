@@ -1,10 +1,10 @@
-import argparse
+﻿import argparse
 import os
 from multiprocessing import freeze_support
 
 
 BASE_DIR = os.getcwd()
-KOREAN_ROOT = os.path.join(BASE_DIR, "korean_food_images")
+KOREAN_ROOT = os.path.join(os.path.join(BASE_DIR, "data"), "korean_food_images")
 YOLO_ROOT = os.path.join(BASE_DIR, "food_dataset")
 
 SELECTED_CLASS_NAMES = [
