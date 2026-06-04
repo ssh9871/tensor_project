@@ -41,6 +41,9 @@
 ---
 
 **사용방법**
+- data.zip을 다운받고 압축해제
+
+- data_process.py를 실행하여 food_dataset 폴더 생성
 
 - model_train.py를 실행하여 yolo모델 학습
 
@@ -48,7 +51,10 @@
 
 - test.py를 실행하면 result_images 폴더가 생성됨
 
+- model_validate.py를 실행하면 best.pt의 성능을 출력함
+
 ---
+
 **실행 결과**
 
 <img src="./result_images/pizza.png" width="300">
