@@ -2,6 +2,11 @@
 --
 
 ---
+**Download**
+
+- [data.zip](https://github.com/ssh9871/tensor_project/releases/latest/download/data.zip)
+
+---
 **Contributors**
 
 - Happy623623
